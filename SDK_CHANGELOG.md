@@ -3,6 +3,10 @@
 ## Releases
 
 
+### v0.100.0 - (8/20/2020)
+
+* Add CredentialRemoreReferences API
+
 ### v0.99.0 - (8/12/2020)
 
 * Add NodeDrain SDK API to OpenstorageNode service.
