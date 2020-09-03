@@ -6,6 +6,9 @@ package mock
 
 import (
 	context "context"
+	reflect "reflect"
+	time "time"
+
 	gomock "github.com/golang/mock/gomock"
 	types "github.com/libopenstorage/gossip/types"
 	api "github.com/libopenstorage/openstorage/api"
@@ -13,8 +16,6 @@ import (
 	osdconfig "github.com/libopenstorage/openstorage/osdconfig"
 	clusterdomain "github.com/libopenstorage/openstorage/pkg/clusterdomain"
 	schedpolicy "github.com/libopenstorage/openstorage/schedpolicy"
-	reflect "reflect"
-	time "time"
 )
 
 // MockCluster is a mock of Cluster interface.
@@ -154,19 +155,19 @@ func (mr *MockClusterMockRecorder) DisableUpdates() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DisableUpdates", reflect.TypeOf((*MockCluster)(nil).DisableUpdates))
 }
 
-// Drain mocks base method.
-func (m *MockCluster) Drain(arg0 context.Context, arg1 *api.SdkNodeDrainRequest) (*api.SdkNodeDrainResponse, error) {
+// DrainAttachments mocks base method.
+func (m *MockCluster) DrainAttachments(arg0 context.Context, arg1 *api.SdkNodeDrainAttachmentsRequest) (*api.SdkNodeDrainResponse, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Drain", arg0, arg1)
+	ret := m.ctrl.Call(m, "DrainAttachments", arg0, arg1)
 	ret0, _ := ret[0].(*api.SdkNodeDrainResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// Drain indicates an expected call of Drain.
-func (mr *MockClusterMockRecorder) Drain(arg0, arg1 interface{}) *gomock.Call {
+// DrainAttachments indicates an expected call of DrainAttachments.
+func (mr *MockClusterMockRecorder) DrainAttachments(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Drain", reflect.TypeOf((*MockCluster)(nil).Drain), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DrainAttachments", reflect.TypeOf((*MockCluster)(nil).DrainAttachments), arg0, arg1)
 }
 
 // EnableUpdates mocks base method.

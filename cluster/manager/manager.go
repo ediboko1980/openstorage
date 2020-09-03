@@ -2045,8 +2045,8 @@ func (c *ClusterManager) EnumerateRebalanceJobs(
 	return c.storagePoolProvider.EnumerateRebalanceJobs(context, request)
 }
 
-func (c *ClusterManager) Drain(ctx context.Context, req *api.SdkNodeDrainRequest) (*api.SdkNodeDrainResponse, error) {
-	return c.nodeDrainProvider.Drain(ctx, req)
+func (c *ClusterManager) DrainAttachments(ctx context.Context, req *api.SdkNodeDrainAttachmentsRequest) (*api.SdkNodeDrainResponse, error) {
+	return c.nodeDrainProvider.DrainAttachments(ctx, req)
 }
 
 func (c *ClusterManager) UpdateNodeDrainJobState(

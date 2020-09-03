@@ -861,6 +861,29 @@
         },
         "type": "object"
       },
+      "apiJob": {
+        "properties": {
+          "create_time": {
+            "format": "date-time",
+            "title": "CreateTime is the time the job was created",
+            "type": "string"
+          },
+          "id": {
+            "title": "ID of the job",
+            "type": "string"
+          },
+          "last_update_time": {
+            "format": "date-time",
+            "title": "LastUpdateTime is the time the job was updated",
+            "type": "string"
+          },
+          "node_drain": {
+            "$ref": "#/components/schemas/apiNodeDrainJob"
+          }
+        },
+        "title": "Job is a generic job object that can encapsulate other\nmessages which follow the job framework of APIs",
+        "type": "object"
+      },
       "apiLabelSelectorRequirement": {
         "description": "LabelSelectorRequirement is a selector that contains values, a key, and an operator that\nrelates the key and values.",
         "properties": {
@@ -926,23 +949,6 @@
         "title": "Options for draining volume attachment from a node",
         "type": "object"
       },
-      "apiNodeDrainCloudDriveOptions": {
-        "title": "Options for draining/detaching cloud drives from a node",
-        "type": "object"
-      },
-      "apiNodeDrainCloudDriveSummary": {
-        "properties": {
-          "message": {
-            "title": "Message provides a helpful message about the state",
-            "type": "string"
-          },
-          "state": {
-            "$ref": "#/components/schemas/apiNodeDrainSubOperationState"
-          }
-        },
-        "title": "NodeDrainCloudDriveSummary summary of the drain operation related to cloud drives",
-        "type": "object"
-      },
       "apiNodeDrainJob": {
         "description": "NodeDrainJob describe the node drain job's input and current state.",
         "properties": {
@@ -951,8 +957,11 @@
             "title": "CreateTime is the time the job was created",
             "type": "string"
           },
-          "id": {
-            "title": "ID of the node drain job",
+          "drain_attachments": {
+            "$ref": "#/components/schemas/apiSdkNodeDrainAttachmentsRequest"
+          },
+          "issuer": {
+            "title": "Issuer is a user friendly name for the caller who is\ninvoking the API. It can be used by caller to filter out\ndrain requests from a particular issuer",
             "type": "string"
           },
           "last_update_time": {
@@ -964,69 +973,28 @@
             "title": "NodeID of the node for which this drain job is running",
             "type": "string"
           },
-          "parameters": {
-            "$ref": "#/components/schemas/apiSdkNodeDrainRequest"
-          },
           "state": {
             "$ref": "#/components/schemas/apiNodeDrainJobState"
+          },
+          "string": {
+            "$ref": "#/components/schemas/openstorageapiStatus"
           }
         },
         "type": "object"
       },
       "apiNodeDrainJobState": {
         "default": "NODE_DRAIN_PENDING",
-        "description": "- NODE_DRAIN_PENDING: Pending indicates job is still pending and has not started work\n - NODE_DRAIN_RUNNING: Running indicates job is actively running\n - NODE_DRAIN_DONE: Done indicates job has finished processing\n - NODE_DRAIN_PAUSED: Paused indicates job is paused\n - NODE_DRAIN_CANCELLED: Cancelled indicates job is cancelled",
+        "description": "- NODE_DRAIN_PENDING: Pending indicates job is still pending and has not started work\n - NODE_DRAIN_RUNNING: Running indicates job is actively running\n - NODE_DRAIN_DONE: Done indicates job has finished processing\n - NODE_DRAIN_PAUSED: Paused indicates job is paused\n - NODE_DRAIN_CANCELLED: Cancelled indicates job is cancelled\n - NODE_DRAIN_FAILED: Failed indicates job has failed",
         "enum": [
           "NODE_DRAIN_PENDING",
           "NODE_DRAIN_RUNNING",
           "NODE_DRAIN_DONE",
           "NODE_DRAIN_PAUSED",
-          "NODE_DRAIN_CANCELLED"
+          "NODE_DRAIN_CANCELLED",
+          "NODE_DRAIN_FAILED"
         ],
         "title": "NodeDrainJobState is an enum for state of a node drain operation",
         "type": "string"
-      },
-      "apiNodeDrainKvdbOptions": {
-        "title": "Options for draining kvdb from a node",
-        "type": "object"
-      },
-      "apiNodeDrainKvdbSummary": {
-        "properties": {
-          "message": {
-            "title": "Message provides a helpful message about the state",
-            "type": "string"
-          },
-          "state": {
-            "$ref": "#/components/schemas/apiNodeDrainSubOperationState"
-          }
-        },
-        "title": "NodeDrainKvdbSummary summary of the drain operation related to kvdb",
-        "type": "object"
-      },
-      "apiNodeDrainOptions": {
-        "properties": {
-          "drain_attachments": {
-            "$ref": "#/components/schemas/apiNodeDrainAttachmentOptions"
-          },
-          "drain_cloud_drives": {
-            "$ref": "#/components/schemas/apiNodeDrainCloudDriveOptions"
-          },
-          "drain_kvdb": {
-            "$ref": "#/components/schemas/apiNodeDrainKvdbOptions"
-          },
-          "drain_volume_replicas": {
-            "$ref": "#/components/schemas/apiNodeDrainVolumeReplicaOptions"
-          },
-          "selector": {
-            "items": {
-              "$ref": "#/components/schemas/apiLabelSelectorRequirement"
-            },
-            "title": "Selector is a global selector used while performing\na node drain sub operation. Per option selector take\nprecedence over global selector",
-            "type": "array"
-          }
-        },
-        "title": "Options for draining a node in the cluster",
-        "type": "object"
       },
       "apiNodeDrainSubOperationState": {
         "default": "NODE_DRAIN_SUB_OPERATION_NOT_CONFIGURED",
@@ -1044,31 +1012,9 @@
         "properties": {
           "attachment_summary": {
             "$ref": "#/components/schemas/apiNodeDrainVolumeSummary"
-          },
-          "cloud_drive_summary": {
-            "$ref": "#/components/schemas/apiNodeDrainCloudDriveSummary"
-          },
-          "kvdb_summary": {
-            "$ref": "#/components/schemas/apiNodeDrainKvdbSummary"
-          },
-          "volume_replica_summary": {
-            "$ref": "#/components/schemas/apiNodeDrainVolumeSummary"
           }
         },
         "title": "Provides a summary of  a node drain job",
-        "type": "object"
-      },
-      "apiNodeDrainVolumeReplicaOptions": {
-        "properties": {
-          "selector": {
-            "description": "Selector is used for selecting volumes whose\nreplicas need to be moved from this node to another.\nThe selector could be a list of volume label\nkey value pairs to select a subset of volumes.",
-            "items": {
-              "$ref": "#/components/schemas/apiLabelSelectorRequirement"
-            },
-            "type": "array"
-          }
-        },
-        "title": "Options for draining volume replicas from a node",
         "type": "object"
       },
       "apiNodeDrainVolumeSummary": {
@@ -1081,6 +1027,11 @@
           "num_volumes_pending": {
             "format": "uint64",
             "title": "Number of volumes which have not been drained yet",
+            "type": "string"
+          },
+          "num_volumes_total": {
+            "format": "uint64",
+            "title": "Total number of volumes that need to be drained",
             "type": "string"
           },
           "state": {
@@ -2549,7 +2500,7 @@
         "properties": {
           "jobs": {
             "items": {
-              "$ref": "#/components/schemas/apiNodeDrainJob"
+              "$ref": "#/components/schemas/apiJob"
             },
             "title": "Jobs is the list of node drain jobs in the response",
             "type": "array"
@@ -2692,7 +2643,7 @@
       "apiSdkGetNodeDrainJobStatusResponse": {
         "properties": {
           "job": {
-            "$ref": "#/components/schemas/apiNodeDrainJob"
+            "$ref": "#/components/schemas/apiJob"
           },
           "summary": {
             "items": {
@@ -2772,27 +2723,27 @@
         "title": "Defines a response containing version information",
         "type": "object"
       },
-      "apiSdkNodeDrainRequest": {
+      "apiSdkNodeDrainAttachmentsRequest": {
         "properties": {
+          "issuer": {
+            "title": "Issuer is a user friendly name for the caller who is\ninvoking the API. It can be used by caller to filter out\ndrain requests from a particular issuer",
+            "type": "string"
+          },
           "node_id": {
             "title": "Id of the node to drain",
             "type": "string"
           },
           "options": {
-            "$ref": "#/components/schemas/apiNodeDrainOptions"
+            "$ref": "#/components/schemas/apiNodeDrainAttachmentOptions"
           }
         },
-        "title": "Defines a node drain request",
+        "title": "Defines a node drain attachments request",
         "type": "object"
       },
       "apiSdkNodeDrainResponse": {
         "properties": {
-          "id": {
-            "title": "ID of the node drain job",
-            "type": "string"
-          },
           "job": {
-            "$ref": "#/components/schemas/apiNodeDrainJob"
+            "$ref": "#/components/schemas/apiJob"
           }
         },
         "title": "Defines a node drain response",
@@ -6516,6 +6467,37 @@
         ]
       }
     },
+    "/v1/nodes/drain/attachments/{node_id}": {
+      "put": {
+        "operationId": "DrainAttachments",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "node_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/apiSdkNodeDrainResponse"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "summary": "DrainAttachments creates a task to drain volume attachments\nfrom the provided node in the cluster.",
+        "tags": [
+          "OpenStorageNodeDrain"
+        ]
+      }
+    },
     "/v1/nodes/drain/job": {
       "get": {
         "operationId": "EnumerateNodeDrainJobs",
@@ -6533,7 +6515,7 @@
         },
         "summary": "EnumerateNodeDrainJobs returns all the node drain jobs currently known to the system",
         "tags": [
-          "OpenStorageNode"
+          "OpenStorageNodeDrain"
         ]
       }
     },
@@ -6564,7 +6546,7 @@
         },
         "summary": "GetDrainStatus gets the status of node drain request",
         "tags": [
-          "OpenStorageNode"
+          "OpenStorageNodeDrain"
         ]
       },
       "put": {
@@ -6593,38 +6575,7 @@
         },
         "summary": "UpdateNodeDrainJobState updates an existing node drain task\nOnly acceptable values are\nNodeDrainJobState_PAUSED - acceptable only from running state\nNodeDrainJobState_CANCELLED - acceptable only from running/pause state\nNodeDrainJobState_RUNNING - acceptable only from pause state",
         "tags": [
-          "OpenStorageNode"
-        ]
-      }
-    },
-    "/v1/nodes/drain/{node_id}": {
-      "put": {
-        "operationId": "Drain",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "node_id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/apiSdkNodeDrainResponse"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "summary": "Drain creates a task to drains the provided node in the cluster.\nThe options provided in the drain request govern the drain operation.",
-        "tags": [
-          "OpenStorageNode"
+          "OpenStorageNodeDrain"
         ]
       }
     },

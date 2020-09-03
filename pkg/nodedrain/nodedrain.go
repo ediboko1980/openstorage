@@ -9,9 +9,8 @@ import (
 
 // Provider implements the node drain functionality.
 type Provider interface {
-	// Drain drains the provided node in the cluster. The options provided
-	// in the drain request govern the drain operation.
-	Drain(ctx context.Context, in *api.SdkNodeDrainRequest) (*api.SdkNodeDrainResponse, error)
+	// DrainAttachments drains volume attachments from the provided node in the cluster.
+	DrainAttachments(ctx context.Context, in *api.SdkNodeDrainAttachmentsRequest) (*api.SdkNodeDrainResponse, error)
 	// UpdateNodeDrainJobState updates an existing node drain task
 	// Only acceptable values are
 	// NodeDrainJobState_PAUSED - acceptable only from running state
@@ -34,7 +33,7 @@ func NewDefaultNodeDrainProvider() Provider {
 type UnsupportedNodeDrainProvider struct {
 }
 
-func (u *UnsupportedNodeDrainProvider) Drain(ctx context.Context, in *api.SdkNodeDrainRequest) (*api.SdkNodeDrainResponse, error) {
+func (u *UnsupportedNodeDrainProvider) DrainAttachments(ctx context.Context, in *api.SdkNodeDrainAttachmentsRequest) (*api.SdkNodeDrainResponse, error) {
 	return nil, &errors.ErrNotSupported{}
 }
 

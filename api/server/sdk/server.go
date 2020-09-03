@@ -186,6 +186,7 @@ type sdkGrpcServer struct {
 	alertsServer          api.OpenStorageAlertsServer
 	policyServer          policy.PolicyManager
 	storagePoolServer     api.OpenStoragePoolServer
+	nodeDrainServer       api.OpenStorageNodeDrainServer
 	filesystemTrimServer  api.OpenStorageFilesystemTrimServer
 	filesystemCheckServer api.OpenStorageFilesystemCheckServer
 }
@@ -423,6 +424,9 @@ func newSdkGrpcServer(config *ServerConfig) (*sdkGrpcServer, error) {
 	s.storagePoolServer = &StoragePoolServer{
 		server: s,
 	}
+	s.nodeDrainServer = &NodeDrainServer{
+		server: s,
+	}
 
 	s.roleServer = config.Security.Role
 	s.policyServer = config.StoragePolicy
@@ -507,6 +511,9 @@ func (s *sdkGrpcServer) Start() error {
 
 		if s.config.Security.Role != nil {
 			api.RegisterOpenStorageRoleServer(grpcServer, s.roleServer)
+		}
+		if s.nodeDrainServer != nil {
+			api.RegisterOpenStorageNodeDrainServer(grpcServer, s.nodeDrainServer)
 		}
 
 		// Register stats for all the services

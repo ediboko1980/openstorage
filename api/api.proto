@@ -1752,6 +1752,46 @@ service OpenStoragePool {
 }
 
 
+// OpenstorageNodeDrain is a service used to drain nodes in the cluster
+service OpenStorageNodeDrain {
+  // DrainAttachments creates a task to drain volume attachments
+  // from the provided node in the cluster.
+  rpc DrainAttachments(SdkNodeDrainAttachmentsRequest)
+    returns (SdkNodeDrainResponse) {
+      option(google.api.http) = {
+        put: "/v1/nodes/drain/attachments/{node_id}"
+      };
+    }
+
+  // UpdateNodeDrainJobState updates an existing node drain task
+  // Only acceptable values are
+  // NodeDrainJobState_PAUSED - acceptable only from running state
+  // NodeDrainJobState_CANCELLED - acceptable only from running/pause state
+  // NodeDrainJobState_RUNNING - acceptable only from pause state
+  rpc UpdateNodeDrainJobState(SdkUpdateNodeDrainJobRequest)
+  returns (SdkUpdateNodeDrainJobResponse) {
+    option(google.api.http) = {
+        put: "/v1/nodes/drain/job/{id}"
+      };
+  }
+
+  // GetDrainStatus gets the status of node drain request
+  rpc GetDrainStatus(SdkGetNodeDrainJobStatusRequest)
+    returns (SdkGetNodeDrainJobStatusResponse) {
+      option(google.api.http) = {
+        get: "/v1/nodes/drain/job/{id}"
+      };
+    }
+
+  // EnumerateNodeDrainJobs returns all the node drain jobs currently known to the system
+  rpc EnumerateNodeDrainJobs(SdkEnumerateNodeDrainJobsRequest)
+  returns (SdkEnumerateNodeDrainJobsResponse) {
+    option(google.api.http) = {
+        get: "/v1/nodes/drain/job"
+      };
+  }
+}
+
 // OpenStorageNode is a service used to manage nodes in the cluster
 service OpenStorageNode {
   // Inspect returns information about the specified node
@@ -1786,44 +1826,6 @@ service OpenStorageNode {
         get: "/v1/nodes/filters"
       };
     }
-
-  // Drain creates a task to drains the provided node in the cluster.
-  // The options provided in the drain request govern the drain operation.
-  rpc Drain(SdkNodeDrainRequest)
-    returns (SdkNodeDrainResponse) {
-      option(google.api.http) = {
-        put: "/v1/nodes/drain/{node_id}"
-      };
-    }
-
-  // UpdateNodeDrainJobState updates an existing node drain task
-  // Only acceptable values are
-  // NodeDrainJobState_PAUSED - acceptable only from running state
-  // NodeDrainJobState_CANCELLED - acceptable only from running/pause state
-  // NodeDrainJobState_RUNNING - acceptable only from pause state
-  rpc UpdateNodeDrainJobState(SdkUpdateNodeDrainJobRequest)
-  returns (SdkUpdateNodeDrainJobResponse) {
-    option(google.api.http) = {
-        put: "/v1/nodes/drain/job/{id}"
-      };
-  }
-
-  // GetDrainStatus gets the status of node drain request
-  rpc GetDrainStatus(SdkGetNodeDrainJobStatusRequest)
-    returns (SdkGetNodeDrainJobStatusResponse) {
-      option(google.api.http) = {
-        get: "/v1/nodes/drain/job/{id}"
-      };
-    }
-
-  // EnumerateNodeDrainJobs returns all the node drain jobs currently known to the system
-  rpc EnumerateNodeDrainJobs(SdkEnumerateNodeDrainJobsRequest)
-  returns (SdkEnumerateNodeDrainJobsResponse) {
-    option(google.api.http) = {
-        get: "/v1/nodes/drain/job"
-      };
-  }
-
 }
 
 // OpenStorageVolume is a service used to manage the volumes of a storage system
@@ -3267,6 +3269,23 @@ message SdkNodeInspectRequest {
   string node_id = 1;
 }
 
+// Job is a generic job object that can encapsulate other
+// messages which follow the job framework of APIs
+message Job {
+    // ID of the job
+    string id = 1;
+    // Job is one of the supported jobs
+    oneof job {
+        // NodeDrainJob if selected this job describes a node drain job.
+        NodeDrainJob node_drain = 2;
+    }
+    // CreateTime is the time the job was created
+    google.protobuf.Timestamp create_time = 5;
+    // LastUpdateTime is the time the job was updated
+    google.protobuf.Timestamp last_update_time = 6;
+}
+
+
 // Options for draining volume attachment from a node
 message NodeDrainAttachmentOptions {
     // Selector is used for selecting volumes whose
@@ -3280,6 +3299,7 @@ message NodeDrainAttachmentOptions {
 }
 
 // Options for draining volume replicas from a node
+// Alpha: APIs could change in future
 message NodeDrainVolumeReplicaOptions {
     // Selector is used for selecting volumes whose
     // replicas need to be moved from this node to another.
@@ -3289,78 +3309,115 @@ message NodeDrainVolumeReplicaOptions {
 }
 
 // Options for draining/detaching cloud drives from a node
+// Alpha: APIs could change in future
 message NodeDrainCloudDriveOptions {
 }
 
 // Options for draining kvdb from a node
+// Alpha: APIs could change in future
 message NodeDrainKvdbOptions {
 }
 
 
-// Options for draining a node in the cluster
-message NodeDrainOptions {
-    // Selector is a global selector used while performing
-    // a node drain sub operation. Per option selector take
-    // precedence over global selector
-    repeated LabelSelectorRequirement selector = 1;
-    // When set volume attachments will be drained from this node by moving the
-    // applications using volume
-    NodeDrainAttachmentOptions drain_attachments = 2;
-    // When set volume replicas from this node will be moved to
-    // another node
-    NodeDrainVolumeReplicaOptions drain_volume_replicas =  3;
-    // When set if this node acts as a kvdb control node, kvdb will be
-    // drained from this node and will be moved to another node.
-    NodeDrainKvdbOptions drain_kvdb = 4;
-    // When set the backing cloud storage disks will be detached from this node
-    // if the storage provider supports it
-    NodeDrainCloudDriveOptions drain_cloud_drives = 5;
-}
-
-// Defines a node drain request
-message SdkNodeDrainRequest {
+// Defines a node drain attachments request
+message SdkNodeDrainAttachmentsRequest {
     // Id of the node to drain
     string node_id = 1;
     // Options that define how a node drain should be performed
-    NodeDrainOptions options = 2;
+    NodeDrainAttachmentOptions options = 2;
+    // Issuer is a user friendly name for the caller who is
+    // invoking the API. It can be used by caller to filter out
+    // drain requests from a particular issuer
+    string issuer = 3;
+}
+
+// Defines a drain volume replicas from a node request
+// Alpha: APIs could change in future
+message SdkNodeDrainVolumeReplicaRequest {
+    // Id of the node to drain
+    string node_id = 1;
+    // Options that define how a node drain should be performed
+    NodeDrainVolumeReplicaOptions options = 2;
+    // Issuer is a user friendly name for the caller who is
+    // invoking the API. It can be used by caller to filter out
+    // drain requests from a particular issuer
+    string issuer = 3;
+}
+
+// Defines a node drain request to drain kvdb from this node
+// Alpha: APIs could change in future
+message SdkNodeDrainKvdbRequest {
+    // Id of the node to drain
+    string node_id = 1;
+    // Options that define how a node drain should be performed
+    NodeDrainKvdbOptions options = 2;
+    // Issuer is a user friendly name for the caller who is
+    // invoking the API. It can be used by caller to filter out
+    // drain requests from a particular issuer
+    string issuer = 3;
+}
+
+// Defines a node drain request to detach cloud drives from this node
+// Alpha: APIs could change in future
+message SdkNodeDrainCloudDriveRequest {
+    // Id of the node to drain
+    string node_id = 1;
+    // Options that define how a node drain should be performed
+    NodeDrainCloudDriveOptions options = 2;
+    // Issuer is a user friendly name for the caller who is
+    // invoking the API. It can be used by caller to filter out
+    // drain requests from a particular issuer
+    string issuer = 3;
 }
 
 // NodeDrainJobState is an enum for state of a node drain operation
 enum NodeDrainJobState {
     // Pending indicates job is still pending and has not started work
-  NODE_DRAIN_PENDING = 0;
-  // Running indicates job is actively running
-  NODE_DRAIN_RUNNING = 1;
-  // Done indicates job has finished processing
-  NODE_DRAIN_DONE = 2;
-  // Paused indicates job is paused
-  NODE_DRAIN_PAUSED = 3;
-  // Cancelled indicates job is cancelled
-  NODE_DRAIN_CANCELLED = 4;
+    NODE_DRAIN_PENDING = 0;
+    // Running indicates job is actively running
+    NODE_DRAIN_RUNNING = 1;
+    // Done indicates job has finished processing
+    NODE_DRAIN_DONE = 2;
+    // Paused indicates job is paused
+    NODE_DRAIN_PAUSED = 3;
+    // Cancelled indicates job is cancelled
+    NODE_DRAIN_CANCELLED = 4;
+    // Failed indicates job has failed
+    NODE_DRAIN_FAILED = 5;
 }
 
 // NodeDrainJob describe the node drain job's input and current state.
 message NodeDrainJob {
-  // ID of the node drain job
-  string id = 1;
-  // NodeID of the node for which this drain job is running
-  string node_id = 2;
-  // State of the current job
-  NodeDrainJobState state = 3;
-  // Parameters is the original request params for this node drain operation
-  SdkNodeDrainRequest parameters = 4;
-  // CreateTime is the time the job was created
-  google.protobuf.Timestamp create_time = 5;
-  // LastUpdateTime is the time the job was updated
-  google.protobuf.Timestamp last_update_time = 6;
+    // NodeID of the node for which this drain job is running
+    string node_id = 1;
+    // State of the current job
+    NodeDrainJobState state = 2;
+    // Status describes a helpful status of this node drain operation
+    Status string = 3;
+    // Issuer is a user friendly name for the caller who is
+    // invoking the API. It can be used by caller to filter out
+    // drain requests from a particular issuer
+    string issuer = 4;
+    // Parameters is the original request params for this node drain operation
+    // This node drain job is applicable to only one of these node drain operations.
+    oneof parameters {
+        // The input DrainAttachment request
+        SdkNodeDrainAttachmentsRequest drain_attachments = 5;
+        // Add the following when we have support for handling such node drain requests
+        // SdkNodeDrainVolumeReplicasRequest drain_volume_replicas = 8;
+        // SdkNodeDrainKvdbRequst drain_kvdb = 9;
+        // SdkNodeDrainCLoudDriveRequest = 10;
+    }
+    // CreateTime is the time the job was created
+    google.protobuf.Timestamp create_time = 6;
+    // LastUpdateTime is the time the job was updated
+    google.protobuf.Timestamp last_update_time = 7;
 }
 
 // Defines a node drain response
 message SdkNodeDrainResponse {
-    // ID of the node drain job
-    string id = 1;
     // Job for this node drain operation
-    NodeDrainJob job = 2 ;
+    Job job = 1 ;
 }
 
 // Defines a request to list all the node drain jobs
@@ -3370,7 +3427,7 @@ message SdkEnumerateNodeDrainJobsRequest  {
 // Defines a response will all the known node drain jobs
 message SdkEnumerateNodeDrainJobsResponse {
   // Jobs is the list of node drain jobs in the response
-  repeated NodeDrainJob jobs = 1;
+  repeated Job jobs = 1;
 }
 
 // Defines a request to update an existing node drain job
@@ -3394,7 +3451,7 @@ message SdkGetNodeDrainJobStatusRequest {
 // Defines the status of an existing node drain job
 message SdkGetNodeDrainJobStatusResponse {
   // Job for this node drain operation.
-  NodeDrainJob job = 1;
+  Job job = 1;
   // Summary summarizes the node drain job
   repeated NodeDrainSummary summary = 2;
 }
@@ -3416,11 +3473,14 @@ message NodeDrainVolumeSummary {
     // State of this operation
     NodeDrainSubOperationState state = 1;
 
+    // Total number of volumes that need to be drained
+    uint64 num_volumes_total = 2;
+
     // Number of volumes which have been drained
-    uint64 num_volumes_done = 2;
+    uint64 num_volumes_done = 3;
 
     // Number of volumes which have not been drained yet
-    uint64 num_volumes_pending = 3;
+    uint64 num_volumes_pending = 4;
 }
 
 // NodeDrainKvdbSummary summary of the drain operation related to kvdb
@@ -3442,14 +3502,17 @@ message NodeDrainCloudDriveSummary {
 
 // Provides a summary of  a node drain job
 message NodeDrainSummary {
-    // Attachment summary
-    NodeDrainVolumeSummary attachment_summary = 1;
-    // Volume replica summary
-    NodeDrainVolumeSummary volume_replica_summary = 2;
-    // Kvdb drain summary
-    NodeDrainKvdbSummary kvdb_summary = 3;
-    // Cloud drive summary
-    NodeDrainCloudDriveSummary cloud_drive_summary = 4;
+    oneof summary {
+        // Attachment summary
+        NodeDrainVolumeSummary attachment_summary = 1;
+        // Add the following summaries when supported
+        // Volume replica summary
+        // NodeDrainVolumeSummary volume_replica_summary = 2;
+        // Kvdb drain summary
+        // NodeDrainKvdbSummary kvdb_summary = 3;
+        // Cloud drive summary
+        // NodeDrainCloudDriveSummary cloud_drive_summary = 4;
+    }
 }
 
 // Defines a request when inspect a storage pool
